@@ -22,7 +22,7 @@ router.post('/auth', function(req, res, next) {
         jwt.sign({
           _id: user._id,
           email: user.email
-        }, config.jwtSecret, { expiredAt: '7d' }, (err, token) => {
+        }, config.jwtSecret, { expiresIn: '7d' }, (err, token) => {
           if (err) {
             next(new ServerError());
           } else {
@@ -40,31 +40,31 @@ router.post('/auth', function(req, res, next) {
           short_bio,
           profile_image_url
         });
-        newUser.save((err, user => {
-          if (err) {
-            if (err.errors.email && err.errors.email.name === 'ValidatorError') {
-              next(new InvalidEmailError());
-            } else if (err.errors.password && err.errors.password.name === 'ValidatorError') {
-              next(new InvalidPasswordError());
-            } else {
+        newUser.save()
+        .then(user => {
+          jwt.sign({
+            _id: user._id,
+            email: user.email
+          }, config.jwtSecret, { expiresIn: '7d' }, (err, token) => {
+            if (err) {
               next(new ServerError());
+            } else {
+              res.status(201).json({
+                user,
+                token
+              });
             }
+          });
+        })
+        .catch(err => {
+          if (err.errors.email && err.errors.email.name === 'ValidatorError') {
+            next(new InvalidEmailError());
+          } else if (err.errors.password && err.errors.password.name === 'ValidatorError') {
+            next(new InvalidPasswordError());
           } else {
-            jwt.sign({
-              _id: user._id,
-              email: user.email
-            }, config.jwtSecret, { expiredAt: '7d' }, (err, token) => {
-              if (err) {
-                next(new ServerError());
-              } else {
-                res.status(201).json({
-                  user,
-                  token
-                });
-              }
-            });
+            next(new ServerError());
           }
-        }));
+        });
       }
     }
   });
