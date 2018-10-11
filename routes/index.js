@@ -21,7 +21,11 @@ router.post('/auth', function(req, res, next) {
       if (user) {
         jwt.sign({
           _id: user._id,
-          email: user.email
+          email: user.email,
+          profileImageUrl: user.profile_image_url,
+          name: user.name,
+          userName: user.user_name,
+          shortBio: user.short_bio
         }, config.jwtSecret, { expiresIn: '7d' }, (err, token) => {
           if (err) {
             next(new ServerError());
@@ -44,7 +48,11 @@ router.post('/auth', function(req, res, next) {
         .then(user => {
           jwt.sign({
             _id: user._id,
-            email: user.email
+            email: user.email,
+            profileImageUrl: user.profile_image_url,
+            name: user.name,
+            userName: user.user_name,
+            shortBio: user.short_bio
           }, config.jwtSecret, { expiresIn: '7d' }, (err, token) => {
             if (err) {
               next(new ServerError());

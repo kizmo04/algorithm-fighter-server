@@ -9,8 +9,8 @@ const UserSchema = new Schema({
   joined_date: { type: Date, default: Date.now },
   short_bio: String,
   profile_image_url: {
-    type: String,
-    get: v => `${global}${v}`
+    type: String
+    // get: v => `${global}${v}`
   },
   solutions: [SolutionSchema]
 });
