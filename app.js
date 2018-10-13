@@ -5,7 +5,6 @@ const cookieParser = require("cookie-parser");
 const logger = require("morgan");
 const mongoose = require("mongoose");
 const config = require("./config");
-const bodyParser = require("body-parser");
 
 mongoose.connect(
   config.mongoDB,
@@ -15,10 +14,32 @@ mongoose.set("useCreateIndex", true);
 
 const indexRouter = require("./routes/index");
 const usersRouter = require("./routes/users");
+const matchesRouter = require("./routes/matches");
+const problemsRouter = require("./routes/problems");
 
 const app = express();
 
-app.use(cors());
+const IS_DEV = process.env.NODE_ENV !== 'production';
+
+const whitelist = [];
+
+if (IS_DEV) {
+  whitelist.push('http://localhost:3000');
+} else {
+  whitelist.push('https://alrogithmfighter.com');
+}
+
+const corsOptions = {
+  origin: function (origin, callback) {
+    if (whitelist.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  }
+};
+
+app.use(cors(corsOptions));
 app.use(logger("dev"));
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
@@ -27,6 +48,10 @@ app.use(express.static(path.join(__dirname, "public")));
 
 app.use("/api", indexRouter);
 app.use("/api/users", usersRouter);
+app.use("/api/matches", matchesRouter);
+app.use("/api/problems", problemsRouter);
+
+
 
 app.use(function(err, req, res, next) {
   res.status(err.status).json({ message: err.message });
