@@ -1,9 +1,17 @@
 const express = require('express');
 const router = express.Router();
-const { EmailNotFoundError, ServerError, InvalidEmailError, InvalidPasswordError } = require('../lib/errors');
 const User = require('../models/User');
 const jwt = require('jsonwebtoken');
 const config = require('../config');
+const {
+  InvalidImageUrlError,
+  ServerError,
+  InvalidEmailError,
+  InvalidPasswordError,
+} = require('../lib/errors');
+
+const URL_REGEX = /https*:\/\/.*/;
+const EMAIL_REGEX = /^[a-zA-Z0-9.!#$%&'*+\/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;
 
 router.get('/', function(req, res, next) {
   res.render('index', { title: 'Express' });
@@ -12,7 +20,11 @@ router.get('/', function(req, res, next) {
 router.post('/auth', function(req, res, next) {
   const { email, name, user_name, short_bio, profile_image_url } = req.body;
 
-  if (email === '') return next(new EmailNotFoundError());
+  if (!EMAIL_REGEX.test(email)) {
+    next(new InvalidEmailError());
+  } else if (!URL_REGEX.test(profile_image_url)) {
+    next(new InvalidImageUrlError());
+  }
 
   User.findOne({ email }, (err, user) => {
     if (err) {

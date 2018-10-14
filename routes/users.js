@@ -5,8 +5,11 @@ const Problem = require('../models/Problem');
 const vm = require("vm");
 const util = require("util");
 const async = require('async');
+const mongoose = require('mongoose');
 const {
   ServerError,
+  InvalidProblemIdError,
+  InvalidUserIdError,
 } = require('../lib/errors');
 
 
@@ -21,7 +24,13 @@ router.get('/', function(req, res, next) {
 });
 
 router.get('/:user_id', (req, res, next) => {
-  User.findById(req.params.user_id)
+  const { user_id } = req.params;
+
+  if (!mongoose.Types.ObjectId.isValid(user_id)) {
+    next(new InvalidUserIdError());
+  }
+
+  User.findById(user_id)
   .then(user => {
     res.status(200).json(user);
   })
@@ -33,30 +42,35 @@ router.get('/:user_id', (req, res, next) => {
 router.put('/:user_id', (req, res, next) => {
   const { code, problem_id } = req.body;
   const { user_id } = req.params;
-  const tasks = [
-  cb => {
-    Problem.findById(problem_id)
-    .then(problem => {
-      console.log('problem', problem);
-      cb(null, code, problem.tests);
-    })
-  },
-  (code, tests, cb) => {
-    console.log('tests', tests);
-    console.log('code', code);
-    cb(null, checkSolution(code, tests));
+
+  if (!mongoose.Types.ObjectId.isValid(problem_id)) {
+    next(new InvalidProblemIdError());
+  } else if (!mongoose.Types.ObjectId.isValid(user_id)) {
+    next(new InvalidUserIdError());
   }
-  ];
 
   async.waterfall(
-    tasks,
+    [
+      cb => {
+        Problem.findById(problem_id)
+        .then(problem => {
+          cb(null, code, problem.tests);
+        })
+      },
+      (code, tests, cb) => {
+        cb(null, checkSolution(code, tests));
+      },
+    ],
     (err, { testResult, code, countPassed, isPassedAll }) => {
       if (err) {
         next(new ServerError());
       }
       if (isPassedAll) {
-        User.findByIdAndUpdate(user_id, { $push: { solutions: { problem_id, code} }})
-        .then(user => {
+        Promise.all([
+          Problem.findOneAndUpdate({ _id: problem_id }, { $push: { completed_from: user_id }}),
+          User.findByIdAndUpdate(user_id, { $push: { solutions: { problem_id, code} }}),
+        ])
+        .then(() => {
           res.status(200).json({ testResult, countPassed, isPassedAll });
         })
         .catch(err => {
@@ -77,31 +91,30 @@ function checkSolution (code, tests) {
   let isPassedAll = false;
 
   let testResult = tests.map(test => {
-    console.log('input: ', test.input)
     sandBox = {
       solutionOutput: null,
       solutionIsPassed: null,
     };
-    code += '\nsolutionOutput = solution(' + test.input + ')';
-    code += `\nsolutionIsPassed = solutionOutput === ${typeof test.output === "string" ? '"' + test.output + '"' : test.output } \n`;
+    let codeToCheck = code + `\nsolutionOutput = solution(${ test.input })`;
+    codeToCheck += `\nsolutionIsPassed = solutionOutput === ${ test.output } \n`;
     context = vm.createContext(sandBox);
-    script = new vm.Script(code);
+    script = new vm.Script(codeToCheck);
     script.runInContext(context, {
       displayErrors: true,
       timeout: 1000
     });
-    const solutionIsPassed = util.inspect(sandBox.solutionIsPassed);
+    const pass = new Boolean(util.inspect(sandBox.pass));
     const solutionOutput = util.inspect(sandBox.solutionOutput);
-    if (solutionIsPassed === 'true') countPassed++;
+    if (pass) countPassed++;
     if (countPassed === tests.length) isPassedAll = true;
     return {
       input: test.input,
       output: test.output,
       solutionOutput,
-      solutionIsPassed,
+      pass,
     };
   });
-  return { testResult, code, countPassed, isPassedAll };
+  return { testResult, countPassed, isPassedAll };
 }
 
 module.exports = router;
