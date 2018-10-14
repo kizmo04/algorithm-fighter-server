@@ -14,6 +14,7 @@ const {
   FIND_MATCH_PARTNER,
   MATCH_PARTNER_REFUSE_MATCH_INVITATION,
 } = require('../constants/socketEventTypes');
+
 var onUsers = [];
 
 function getRandomClient(users, hashString) {

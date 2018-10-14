@@ -1,20 +1,21 @@
 const jwt = require('jsonwebtoken');
-const ERRORS = require('../lib/errors');
+const {
+  TokenExpiredError,
+  AuthenticationError,
+} = require('../lib/errors');
 
  module.exports = (req, res, next) => {
-  try {
-    const token = req.body.token;
-    // const token = req.headers.authorization.split(' ')[1];// headers.authorization === 'Bearer ejwkqlelj~~'
-    jwt.verify(token, 'dragon', function(err, decoded) {
-      if (err) {
-        next(new ERRORS.TokenExpiredError());
-      } else {
+   try {
+    const token = req.headers.authorization.split(' ')[1];
 
+    jwt.verify(token, process.env.JWT_SECRET, err => {
+      if (err) {
+        next(new TokenExpiredError());
+      } else {
+        next();
       }
     });
-    next();
   } catch (error) {
-    next(ERRORS.AuthenticationError);
+    next(new AuthenticationError());
   }
-  next();
 };

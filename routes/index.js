@@ -9,21 +9,21 @@ const {
   InvalidEmailError,
   InvalidPasswordError,
 } = require('../lib/errors');
+const {
+  URL_REGEX,
+  EMAIL_REGEX,
+} =require('../models/constants/regex');
 
-const URL_REGEX = /https*:\/\/.*/;
-const EMAIL_REGEX = /^[a-zA-Z0-9.!#$%&'*+\/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;
 
-router.get('/', function(req, res, next) {
-  res.render('index', { title: 'Express' });
-});
-
-router.post('/auth', function(req, res, next) {
+router.post('/auth', (req, res, next) => {
   const { email, name, user_name, short_bio, profile_image_url } = req.body;
 
   if (!EMAIL_REGEX.test(email)) {
     next(new InvalidEmailError());
+    return;
   } else if (!URL_REGEX.test(profile_image_url)) {
     next(new InvalidImageUrlError());
+    return;
   }
 
   User.findOne({ email }, (err, user) => {
@@ -43,7 +43,6 @@ router.post('/auth', function(req, res, next) {
             next(new ServerError());
           } else {
             res.status(200).json({
-              user,
               token
             });
           }
@@ -70,7 +69,6 @@ router.post('/auth', function(req, res, next) {
               next(new ServerError());
             } else {
               res.status(201).json({
-                user,
                 token
               });
             }

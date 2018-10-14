@@ -4,33 +4,27 @@ const Problem = require('../models/Problem');
 const mongoose = require('mongoose');
 const {
   ServerError,
-  InvalidUserIdError,
-  DuplicateObjectIdError,
-  InvalidTestCaseError,
-  InvalidDifficultyLevelError,
-  InvalidInitialCodeError,
-  InvalidDescriptionError,
-  InvalidTitleError,
-  InvalidCreatedUserError,
+  InvalidParameterError,
 } = require('../lib/errors');
+const {
+  validateString,
+  validateTestCase,
+} = require('../models/utils/validator');
 
 router.get('/', (req, res, next) => {
   Problem.find()
   .then(problems => {
     res.status(200).json(problems);
   })
-  .catch(err => {
-    next(new ServerError());
-  });
+  .catch(err => next(new ServerError()));
 });
 
 router.get('/random', (req, res, next) => {
   const { u_id, p_id } = req.query; // u_id == user_id, p_id === partner_id
 
-  if (!mongoose.Types.ObjectId.isValid(u_id) || !mongoose.Types.ObjectId.isValid(p_id)) {
-    next(new InvalidUserIdError());
-  } else if (u_id === p_id) {
-    next(new DuplicateObjectIdError());
+  if (!mongoose.Types.ObjectId.isValid(u_id) || !mongoose.Types.ObjectId.isValid(p_id) || u_id === p_id) {
+    next(new InvalidParameterError('user id'));
+    return;
   }
 
   Problem.find({ completed_from: { $not: { $in: [u_id, p_id] }}, created_from: { $not: { $in: [u_id, p_id]}}})
@@ -44,29 +38,30 @@ router.get('/random', (req, res, next) => {
       });
     }
   })
-  .catch(err => {
-    res.send(err);
-    next(new ServerError());
-  });
+  .catch(err => next(new ServerError()));
 });
 
 router.post('/', (req, res, next) => {
   const { title, description, difficulty_level, initial_code, created_from, tests } = req.body;
 
   if (!validateString(title)) {
-    next(new InvalidTitleError());
+    next(new InvalidParameterError('title'));
+    return;
   } else if (!validateString(description)) {
-    next (new InvalidDescriptionError());
+    next (new InvalidParameterError('description'));
+    return;
   } else if (!validateString(initial_code)) {
-    next(new InvalidInitialCodeError());
+    next(new InvalidParameterError('initial code'));
+    return;
   } else if (!mongoose.Types.ObjectId.isValid(created_from)) {
-    next(new InvalidCreatedUserError());
-  } else if (!Number.isInteger(JSON.parse(difficulty_level))) {
-    next(new InvalidDifficultyLevelError());
-  } else if (!tests.length) {
-    next(new InvalidTestCaseError());
-  } else if (!validateTestCase(tests)) {
-    next(new InvalidTestCaseError());
+    next(new InvalidParameterError('user id'));
+    return;
+  } else if (!Number.isInteger(Number(difficulty_level))) {
+    next(new InvalidParameterError('difficulty level'));
+    return;
+  } else if (!Array.isArray(tests) || !tests.length || !validateTestCase(tests)) {
+    next(new InvalidParameterError('test case'));
+    return;
   }
 
   let newProblem = new Problem({
@@ -82,19 +77,7 @@ router.post('/', (req, res, next) => {
   .then(problem => {
     res.status(201).json(problem);
   })
-  .catch(err => {
-    next(new ServerError());
-  });
+  .catch(err => next(new ServerError()));
 });
-
-function validateString(str) {
-  return typeof str === 'string' && !!str.trim();
-}
-
-function validateTestCase(tests) {
-  return tests.every(test => {
-    return typeof test.input === 'string' && typeof test.expected_output === 'string';
-  });
-}
 
 module.exports = router;

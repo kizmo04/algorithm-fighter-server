@@ -8,35 +8,37 @@ const async = require('async');
 const mongoose = require('mongoose');
 const {
   ServerError,
-  InvalidProblemIdError,
-  InvalidUserIdError,
+  InvalidParameterError,
 } = require('../lib/errors');
+const checkAuth = require('../middleware/check-auth');
 
+router.use(checkAuth);
 
-router.get('/', function(req, res, next) {
+router.get('/', (req, res, next) => {
   User.find()
   .then(users => {
     res.status(200).json(users);
   })
-  .catch(err => {
-    next(new ServerError());
-  });
+  .catch(err => next(new ServerError()));
 });
 
 router.get('/:user_id', (req, res, next) => {
   const { user_id } = req.params;
 
   if (!mongoose.Types.ObjectId.isValid(user_id)) {
-    next(new InvalidUserIdError());
+    next(new InvalidParameterError('user id'));
+    return;
   }
 
   User.findById(user_id)
   .then(user => {
-    res.status(200).json(user);
+    if (!user) {
+      next(new InvalidParameterError('user id'));
+    } else {
+      res.status(200).json(user);
+    }
   })
-  .catch(err => {
-    next(new ServerError());
-  });
+  .catch(err => next(new ServerError()));
 });
 
 router.put('/:user_id', (req, res, next) => {
@@ -44,9 +46,11 @@ router.put('/:user_id', (req, res, next) => {
   const { user_id } = req.params;
 
   if (!mongoose.Types.ObjectId.isValid(problem_id)) {
-    next(new InvalidProblemIdError());
+    next(new InvalidParameterError('problem id'));
+    return;
   } else if (!mongoose.Types.ObjectId.isValid(user_id)) {
-    next(new InvalidUserIdError());
+    next(new InvalidParameterError('user id'));
+    return;
   }
 
   async.waterfall(
@@ -54,30 +58,43 @@ router.put('/:user_id', (req, res, next) => {
       cb => {
         Problem.findById(problem_id)
         .then(problem => {
-          cb(null, code, problem.tests);
+          if (!problem) {
+            cb(new InvalidParameterError('problem id'));
+          } else {
+            cb(null, code, problem.tests);
+          }
         })
+        .catch(err => cb(err));
       },
       (code, tests, cb) => {
         cb(null, checkSolution(code, tests));
       },
+      (err, result) => {
+        if (err) {
+          cb(new ServerError());
+          return;
+        }
+        const { testResult, code, countPassed, isPassedAll } = result;
+
+        if (isPassedAll) {
+          Promise.all([
+            Problem.findOneAndUpdate({ _id: problem_id }, { $push: { completed_from: user_id }}),
+            User.findByIdAndUpdate(user_id, { $push: { solutions: { problem_id, code} }}),
+          ])
+          .then(() => {
+            cb(null, { testResult, countPassed, isPassedAll });
+          })
+          .catch(err => cb(new ServerError()));
+        } else {
+          cb(null, { testResult, countPassed, isPassedAll });
+        }
+      },
     ],
-    (err, { testResult, code, countPassed, isPassedAll }) => {
+    (err, result) => {
       if (err) {
         next(new ServerError());
-      }
-      if (isPassedAll) {
-        Promise.all([
-          Problem.findOneAndUpdate({ _id: problem_id }, { $push: { completed_from: user_id }}),
-          User.findByIdAndUpdate(user_id, { $push: { solutions: { problem_id, code} }}),
-        ])
-        .then(() => {
-          res.status(200).json({ testResult, countPassed, isPassedAll });
-        })
-        .catch(err => {
-          next(new ServerError());
-        });
       } else {
-        res.status(200).json({ testResult, countPassed, isPassedAll });
+        res.status(200).json(result);
       }
     }
   );
@@ -109,8 +126,8 @@ function checkSolution (code, tests) {
     if (countPassed === tests.length) isPassedAll = true;
     return {
       input: test.input,
-      output: test.output,
-      solutionOutput,
+      expected_output: test.expected_output,
+      solution_output: solutionOutput,
       pass,
     };
   });
