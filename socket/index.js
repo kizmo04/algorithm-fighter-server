@@ -5,13 +5,14 @@ const {
   USER_LOGIN,
   USER_LOGOUT,
   USER_DISCONNECTION,
-  REFUSE,
-  JOIN_OPPONENT,
-  ACCEPTANCE,
-  NO_OPPONENT,
-  WAITING_TO_ACCEPT,
-  INVITE,
-  REQUEST_OPPONENT,
+  MATCH_PARTNER_UNAVAILABLE,
+  MATCH_PARTNER_ENTERED,
+  REFUSE_MATCH_INVITATION,
+  ACCEPT_MATCH_INVITATION,
+  PENDING_MATCH_ACCEPTANCE,
+  SEND_MATCH_INVITATION,
+  FIND_MATCH_PARTNER,
+  MATCH_PARTNER_REFUSE_MATCH_INVITATION,
 } = require('../constants/socketEventTypes');
 var onUsers = [];
 
@@ -37,13 +38,13 @@ module.exports = io => {
       }
     });
 
-    socket.on(USER_DISCONNECTION, data => {
+    socket.on(USER_DISCONNECTION, () => {
       if (onUsers.map(client => client.socketId).includes(socket.id)) {
         onUsers.splice(_.findIndex(onUsers, client => client.socketId === socket.id), 1);
       }
     });
 
-    socket.on(REQUEST_OPPONENT, (hostUser, prevCombatRoomKey) => {
+    socket.on(FIND_MATCH_PARTNER, ({hostUser, prevCombatRoomKey}) => {
       const hostUserIndex = _.findIndex(onUsers, client => client.socketId === socket.id);
 
       if (prevCombatRoomKey) socket.leave(prevCombatRoomKey);
@@ -57,24 +58,25 @@ module.exports = io => {
         const randomClient = getRandomClient(onUsers, combatRoomKey);
         const guestUser = randomClient.user;
         const guestSocketId = randomClient.socketId;
-        io.of('/').to(guestSocketId).emit(INVITE, { hostUser, combatRoomKey });
-        io.of('/').to(combatRoomKey).emit(WAITING_TO_ACCEPT, { guestUser });
+        io.of('/').to(guestSocketId).emit(SEND_MATCH_INVITATION, { hostUser, combatRoomKey });
+        io.of('/').to(combatRoomKey).emit(PENDING_MATCH_ACCEPTANCE, guestUser);
       } else {
-        io.of('/').to(combatRoomKey).emit(NO_OPPONENT);
+        io.of('/').to(combatRoomKey).emit(MATCH_PARTNER_UNAVAILABLE);
         socket.leave(combatRoomKey);
         socket.join(socket.id);
       }
     });
 
-    socket.on(ACCEPTANCE, ({ hostUser, combatRoomKey }) => {
+    socket.on(ACCEPT_MATCH_INVITATION, ({ hostUser, combatRoomKey }) => {
       socket.join(combatRoomKey);
       socket.leave(socket.id);
       onUsers.splice(_.findIndex(onUsers, client => client.socketId === socket.id), 1);
-      io.of('/').to(combatRoomKey).emit(JOIN_OPPONENT, { hostUser, combatRoomKey });
+      io.of('/').to(combatRoomKey).emit(MATCH_PARTNER_ENTERED, { hostUser, combatRoomKey });
     });
 
-    socket.on(REFUSE, ({combatRoomKey}) => {
-      io.of('/').to(combatRoomKey).emit(REFUSE, combatRoomKey);
+    socket.on(REFUSE_MATCH_INVITATION, ({combatRoomKey, guestUser}) => {
+      console.log('refuse match invitation' + combatRoomKey)
+      io.of('/').to(combatRoomKey).emit(MATCH_PARTNER_REFUSE_MATCH_INVITATION, combatRoomKey);
     });
   });
 };

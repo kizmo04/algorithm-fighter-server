@@ -12,7 +12,7 @@ const UserSchema = new Schema({
     type: String
     // get: v => `${global}${v}`
   },
-  solutions: [SolutionSchema]
+  solutions: [SolutionSchema],
 });
 
 const User = mongoose.model("User", UserSchema);

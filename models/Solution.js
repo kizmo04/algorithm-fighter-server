@@ -3,7 +3,7 @@ const Schema = mongoose.Schema;
 
 const SolutionSchema = new Schema({
   problem_id: { type: Schema.Types.ObjectId, required: true },
-  code: String
+  code: { type: String, required: true },
 });
 
 module.exports = SolutionSchema;

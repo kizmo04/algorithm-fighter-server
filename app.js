@@ -6,6 +6,7 @@ const logger = require("morgan");
 const mongoose = require("mongoose");
 const config = require("./config");
 
+
 mongoose.connect(
   config.mongoDB,
   { useNewUrlParser: true }
@@ -39,7 +40,7 @@ const corsOptions = {
   }
 };
 
-app.use(cors(corsOptions));
+app.use(cors());
 app.use(logger("dev"));
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
