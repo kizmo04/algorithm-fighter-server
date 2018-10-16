@@ -20,6 +20,8 @@ const {
   KEY_DOWN,
   MATCH_PARTNER_KEY_DOWN,
   MATCH_PARTNER_KEY_UP,
+  SOLUTION_SUBMITTED,
+  MATCH_PARTNER_SOLUTION_SUBMITTED,
 } = require('../constants/socketEventTypes');
 
 var onUsers = [];
@@ -106,6 +108,11 @@ module.exports = io => {
     socket.on(KEY_UP, combatRoomKey => {
       console.log('on key up!', combatRoomKey);
       socket.broadcast.to(combatRoomKey).emit(MATCH_PARTNER_KEY_UP, combatRoomKey);
+    });
+
+    socket.on(SOLUTION_SUBMITTED, (testResult, countPassed, isPassedAll, combatRoomKey) => {
+      console.log('solution submitted', combatRoomKey)
+      socket.broadcast.to(combatRoomKey).emit(MATCH_PARTNER_SOLUTION_SUBMITTED, testResult, countPassed, isPassedAll);
     });
   });
 };

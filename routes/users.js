@@ -44,6 +44,7 @@ router.get('/:user_id', (req, res, next) => {
 router.put('/:user_id', (req, res, next) => {
   const { code, problem_id } = req.body;
   const { user_id } = req.params;
+  console.log('in put solution', req.body, req.params)
 
   if (!mongoose.Types.ObjectId.isValid(problem_id)) {
     next(new InvalidParameterError('problem id'));
@@ -67,26 +68,33 @@ router.put('/:user_id', (req, res, next) => {
         .catch(err => cb(err));
       },
       (code, tests, cb) => {
-        cb(null, checkSolution(code, tests));
-      },
-      (err, result) => {
-        if (err) {
+        try {
+          const result = checkSolution(code, tests);
+          console.log('checksolution result',result);
+          cb(null, result);
+        } catch (error) {
+          console.log(error);
           cb(new ServerError());
-          return;
         }
-        const { testResult, code, countPassed, isPassedAll } = result;
+      },
+      (result, cb) => {
+        try {
+          const { testResult, code, countPassed, isPassedAll } = result;
 
-        if (isPassedAll) {
-          Promise.all([
-            Problem.findOneAndUpdate({ _id: problem_id }, { $push: { completed_from: user_id }}),
-            User.findByIdAndUpdate(user_id, { $push: { solutions: { problem_id, code} }}),
-          ])
-          .then(() => {
+          if (isPassedAll) {
+            Promise.all([
+              Problem.findOneAndUpdate({ _id: problem_id }, { $push: { completed_from: user_id }}),
+              User.findByIdAndUpdate(user_id, { $push: { solutions: { problem_id, code} }}),
+            ])
+            .then(() => {
+              cb(null, { testResult, countPassed, isPassedAll });
+            })
+            .catch(err => cb(new ServerError()));
+          } else {
             cb(null, { testResult, countPassed, isPassedAll });
-          })
-          .catch(err => cb(new ServerError()));
-        } else {
-          cb(null, { testResult, countPassed, isPassedAll });
+          }
+        } catch (error) {
+          cb(new ServerError());
         }
       },
     ],
@@ -112,8 +120,8 @@ function checkSolution (code, tests) {
       solutionOutput: null,
       solutionIsPassed: null,
     };
-    let codeToCheck = code + `\nsolutionOutput = solution(${ test.input })`;
-    codeToCheck += `\nsolutionIsPassed = solutionOutput === ${ test.output } \n`;
+    let codeToCheck = code + `\nsolutionOutput = solution(${ test.input }) \n console.log(solutionOutput)`;
+    codeToCheck += `\nsolutionIsPassed = solutionOutput === ${ typeof test.expected_output === 'string' ? '"' + test.expected_output +'"' : test.expected_output } \n`;
     context = vm.createContext(sandBox);
     script = new vm.Script(codeToCheck);
     script.runInContext(context, {
