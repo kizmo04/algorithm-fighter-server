@@ -27,16 +27,31 @@ router.get('/random', (req, res, next) => {
     return;
   }
 
-  Problem.find({ completed_from: { $not: { $in: [u_id, p_id] }}, created_from: { $not: { $in: [u_id, p_id]}}})
+  Problem.find({ completed_from: { $not: { $in: [u_id, p_id] } }, created_from: { $not: { $in: [u_id, p_id] } } })
   .then(problems => {
     if (problems.length) {
-      res.status(200).json(problems[Date.now() % problems.length]);
+      res.status(200).json({ problem: problems[Date.now() % problems.length] });
     } else {
       Problem.find()
       .then(problems => {
-        res.status(200).json(problems[Date.now() % problems.length]);
+        res.status(200).json({ problem: problems[Date.now() % problems.length] });
       });
     }
+  })
+  .catch(err => next(new ServerError()));
+});
+
+router.get('/:problem_id', (req, res, next) => {
+  const { problem_id } = req.params;
+
+  if (!mongoose.Types.ObjectId.isValid(problem_id)) {
+    next(new InvalidParameterError('problem id'));
+    return;
+  }
+
+  Problem.findById(problem_id)
+  .then(problem => {
+    res.status(200).json({ problem });
   })
   .catch(err => next(new ServerError()));
 });
