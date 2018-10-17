@@ -37,7 +37,9 @@ router.post('/auth', (req, res, next) => {
           profileImageUrl: user.profile_image_url,
           name: user.name,
           userName: user.user_name,
-          shortBio: user.short_bio
+          shortBio: user.short_bio,
+          solutions: user.solutions,
+          createdAt: user.created_at,
         }, config.jwtSecret, { expiresIn: '7d' }, (err, token) => {
           if (err) {
             next(new ServerError());
@@ -53,7 +55,7 @@ router.post('/auth', (req, res, next) => {
           name,
           user_name,
           short_bio,
-          profile_image_url
+          profile_image_url,
         });
         newUser.save()
         .then(user => {
@@ -63,7 +65,9 @@ router.post('/auth', (req, res, next) => {
             profileImageUrl: user.profile_image_url,
             name: user.name,
             userName: user.user_name,
-            shortBio: user.short_bio
+            shortBio: user.short_bio,
+            solutions: user.solutions,
+            createdAt: user.created_at,
           }, config.jwtSecret, { expiresIn: '7d' }, (err, token) => {
             if (err) {
               next(new ServerError());
