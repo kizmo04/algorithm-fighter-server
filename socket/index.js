@@ -22,6 +22,7 @@ const {
   MATCH_PARTNER_KEY_UP,
   SOLUTION_SUBMITTED,
   MATCH_PARTNER_SOLUTION_SUBMITTED,
+  MATCH_TIMER,
 } = require('../constants/socketEventTypes');
 
 var onUsers = [];
@@ -95,9 +96,21 @@ module.exports = io => {
       socket.join(socket.id);
     });
 
-    socket.on(SEND_RANDOM_PROBLEM, (problem, combatRoomKey) => {
-      console.log('on send random problem!', combatRoomKey)
-      io.of('/').to(combatRoomKey).emit(MATCH_START, problem);
+    var intervalId;
+
+    socket.on(SEND_RANDOM_PROBLEM, (problem, combatRoomKey, matchId) => {
+      console.log('on send random problem!', matchId)
+      io.of('/').to(combatRoomKey).emit(MATCH_START, problem, matchId);
+      var time = problem.difficulty_level * 10000;
+      intervalId = setInterval(() => {
+        console.log(time)
+        if (!time) {
+          clearInterval(intervalId);
+          // io.of('/').to(combatRoomKey).emit(MATCH_TIMER, time); // 게임 종료
+        }
+        io.of('/').to(combatRoomKey).emit(MATCH_TIMER, time);
+        time -= 1000;
+      }, 1000);
     });
 
     socket.on(KEY_DOWN, combatRoomKey => {
