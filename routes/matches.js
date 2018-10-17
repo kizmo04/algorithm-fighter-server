@@ -11,21 +11,11 @@ const checkAuth = require('../middleware/check-auth');
 router.use(checkAuth);
 
 router.get('/', (req, res, next) => {
-  const { user_id } = req.query;
-
-  if (user_id) {
-    Match.find({ users: { $in: [user_id] }}) // winner_id null은 제외...
-    .then(matches => {
-      res.status(200).json(matches);
-    })
-    .catch(err => next(new ServerError()));
-  } else {
-    Match.find() // winner_id null은 제외...
-    .then(matches => {
-      res.status(200).json(matches);
-    })
-    .catch(err => next(new ServerError()));
-  }
+  Match.find() // winner_id null은 제외...
+  .then(matches => {
+    res.status(200).json(matches);
+  })
+  .catch(err => next(new ServerError()));
 });
 
 router.post('/', (req, res, next) => {
