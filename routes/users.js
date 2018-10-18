@@ -82,8 +82,8 @@ router.put('/:user_id', (req, res, next) => {
 
           if (isPassedAll) {
             Promise.all([
-              Problem.findOneAndUpdate({ _id: problem_id }, { $push: { completed_from: user_id }}),
-              User.findByIdAndUpdate(user_id, { $push: { solutions: { problem_id, code} }}),
+              Problem.findOneAndUpdate({ _id: problem_id }, { $addToSet: { completed_from: user_id }}),
+              User.findByIdAndUpdate(user_id, { $addToSet: { solutions: { problem_id, code} }}),
             ])
             .then(() => {
               cb(null, { testResult, countPassed, isPassedAll });
@@ -233,19 +233,19 @@ function checkSolution (code, tests) {
 
   let testResult = tests.map(test => {
     sandBox = {
-      solutionOutput: null,
-      solutionIsPassed: null,
+      actual: null,
+      isPass: null,
     };
-    let codeToCheck = code + `\nsolutionOutput = solution(${ test.input }) \n console.log(solutionOutput)`;
-    codeToCheck += `\nsolutionIsPassed = solutionOutput === ${ typeof test.expected_output === 'string' ? '"' + test.expected_output +'"' : test.expected_output } \n`;
+    let codeToCheck = code + 'actual = ' + `\nactual = solution(${ test.input })` +  `\nisPass = actual === ${test.expected_output} ? true : false \n`;
+    // console.log('code To check', eval(codeToCheck));
     context = vm.createContext(sandBox);
     script = new vm.Script(codeToCheck);
     script.runInContext(context, {
       displayErrors: true,
       timeout: 1000
     });
-    const pass = new Boolean(util.inspect(sandBox.pass));
-    const solutionOutput = util.inspect(sandBox.solutionOutput);
+    const pass = JSON.parse(util.inspect(sandBox.isPass));
+    const solutionOutput = util.inspect(sandBox.actual);
     if (pass) countPassed++;
     if (countPassed === tests.length) isPassedAll = true;
     return {

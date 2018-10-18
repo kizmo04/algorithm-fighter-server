@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const Match = require('../models/Match');
+const User = require('../models/User');
 const mongoose = require('mongoose');
 const {
   ServerError,
@@ -49,11 +50,26 @@ router.put('/:match_id', (req, res, next) => {
     return;
   }
 
-  Match.findByIdAndUpdate(match_id, { winner_id })
+  Match.findByIdAndUpdate(match_id, { winner_id }, { new: true })
   .then(match => {
-    res.status(200).json(match);
+    Promise.all([
+      User.findById(winner_id),
+      User.findById(match.users[1] === winner_id ? match.users[0] : match.users[1])
+    ])
+    .then(([winner, loser]) => {
+      res.status(200).json({
+        winner,
+        loser,
+        _id: match_id,
+        created_at: match.created_at,
+        updated_at: match.updated_at
+      });
+    });
   })
-  .catch(err => next(new ServerError()));
+  .catch(err => {
+    console.log(err);
+    next(new ServerError())
+  });
 });
 
 module.exports = router;

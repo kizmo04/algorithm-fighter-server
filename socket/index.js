@@ -23,6 +23,8 @@ const {
   SOLUTION_SUBMITTED,
   MATCH_PARTNER_SOLUTION_SUBMITTED,
   MATCH_TIMER,
+  MATCH_PARTNER_WINNING,
+  USER_WINNING,
 } = require('../constants/socketEventTypes');
 
 var onUsers = [];
@@ -96,21 +98,41 @@ module.exports = io => {
       socket.join(socket.id);
     });
 
-    var intervalId;
-
     socket.on(SEND_RANDOM_PROBLEM, (problem, combatRoomKey, matchId) => {
-      console.log('on send random problem!', matchId)
-      io.of('/').to(combatRoomKey).emit(MATCH_START, problem, matchId);
-      var time = problem.difficulty_level * 10000;
-      intervalId = setInterval(() => {
-        console.log(time)
-        if (!time) {
-          clearInterval(intervalId);
-          // io.of('/').to(combatRoomKey).emit(MATCH_TIMER, time); // 게임 종료
-        }
-        io.of('/').to(combatRoomKey).emit(MATCH_TIMER, time);
-        time -= 1000;
-      }, 1000);
+      // var time = problem.difficulty_level * 30 * 60 * 1000;
+      var time = 1000 * 180;
+      const min = 60 * 1000;
+
+      if (time <= min * 3) {
+        const secondIntervalId = setInterval(() => {
+          // io.of('/').to(combatRoomKey).emit(MATCH_TIMER, time);
+          if (time < 1000) {
+            // io.of('/').to(combatRoomKey).emit(MATCH_TIMER, time); // 게임 종료
+            clearInterval(secondIntervalId);
+          }
+          time -= 1000;
+        }, 1000);
+
+      } else {
+        const firstIntervalId = setInterval(() => {
+          if (time <= min * 3) {
+            clearInterval(firstIntervalId);
+            const secondIntervalId = setInterval(() => {
+              // io.of('/').to(combatRoomKey).emit(MATCH_TIMER, time);
+              if (time <= 1000) {
+                clearInterval(secondIntervalId);
+                // io.of('/').to(combatRoomKey).emit(MATCH_TIMER, time); // 게임 종료
+              }
+              time -= 1000;
+            }, 1000);
+          } else {
+            time -= min;
+            console.log(time, combatRoomKey)
+            // io.of('/').to(combatRoomKey).emit(MATCH_TIMER, time);
+          }
+        }, min);
+      }
+      io.of('/').to(combatRoomKey).emit(MATCH_START, problem, matchId, time);
     });
 
     socket.on(KEY_DOWN, combatRoomKey => {
@@ -124,8 +146,14 @@ module.exports = io => {
     });
 
     socket.on(SOLUTION_SUBMITTED, (testResult, countPassed, isPassedAll, combatRoomKey) => {
-      console.log('solution submitted', combatRoomKey)
       socket.broadcast.to(combatRoomKey).emit(MATCH_PARTNER_SOLUTION_SUBMITTED, testResult, countPassed, isPassedAll);
+    });
+
+    socket.on(USER_WINNING, (matchResult, combatRoomKey) => {
+      console.log('user winning ')
+      socket.broadcast.to(combatRoomKey).emit(MATCH_PARTNER_WINNING, matchResult);
+      socket.leave(combatRoomKey);
+      socket.in(socket.id);
     });
   });
 };
