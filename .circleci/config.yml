@@ -18,6 +18,10 @@ jobs:
           command: |
             sudo npm install --unsafe-perm
       - run:
+          name: Test
+          command: |
+            npm test
+      - run:
           name: Create AWS credentials manually
           command: |
             mkdir ~/.aws
