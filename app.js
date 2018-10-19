@@ -30,7 +30,7 @@ const app = express();
 
 const IS_DEV = process.env.NODE_ENV !== 'production';
 
-const whitelist = ['http://www.kizmo04.com', 'http://kizmo04.com'];
+const whitelist = ['https://www.kizmo04.com', 'https://kizmo04.com'];
 
 const corsOptions = {
   origin: function (origin, callback) {
@@ -57,14 +57,6 @@ app.use("/api", indexRouter);
 app.use("/api/users", usersRouter);
 app.use("/api/matches", matchesRouter);
 app.use("/api/problems", problemsRouter);
-
-app.use((req, res, next) => {
-  if (process.env.NODE_ENV !== 'local' && (!req.secure) && (req.get('X-Forwarded-Proto') !== 'https')) {
-    res.redirect('https://' + req.get('Host') + req.url);
-  } else {
-    next();
-  }
-});
 
 app.use(function(err, req, res, next) {
   res.status(err.status ? err.status : 500).json({ message: err.message });
