@@ -6,7 +6,14 @@
 
 var app = require('../app');
 var debug = require('debug')('codebattle-server:server');
-var http = require('http');
+// var http = require('http');
+const https = require('https');
+const fs = require('fs');
+
+const options = {
+  key: fs.readFileSync('../certificates/server.key'),
+  cert: fs.readFileSync('../certificates/server.crt')
+};
 
 /**
  * Get port from environment and store in Express.
@@ -19,7 +26,8 @@ app.set('port', port);
  * Create HTTP server.
  */
 
-var server = http.createServer(app);
+// var server = http.createServer(app);
+const server = https.createServer(options, app);
 const io = require('socket.io')(server);
 const SocketListeners = require('../socket');
 SocketListeners(io);
