@@ -14,6 +14,9 @@ const {
   EMAIL_REGEX,
 } =require('../models/constants/regex');
 
+router.get('/', (req, res, next) => {
+  res.json({ message: 'hello' });
+});
 
 router.post('/auth', (req, res, next) => {
   const { email, name, user_name, short_bio, profile_image_url } = req.body;

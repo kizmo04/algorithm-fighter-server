@@ -13,6 +13,12 @@ mongoose.connect(
 );
 mongoose.set("useCreateIndex", true);
 
+const db = mongoose.connection;
+
+db.once('open', () => {
+  console.log('DB Connected...');
+})
+
 cronTask.start();
 
 const indexRouter = require("./routes/index");
@@ -24,14 +30,18 @@ const app = express();
 
 const IS_DEV = process.env.NODE_ENV !== 'production';
 
-const whitelist = ['https://alrogithmfighter.com'];
+const whitelist = ['http://kizmo04.com'];
 
 const corsOptions = {
   origin: function (origin, callback) {
     if (IS_DEV) {
       callback(null, true);
-    } else if (whitelist.indexOf(origin) !== -1) {
-      callback(new Error('Not allowed by CORS'));
+    } else if (!IS_DEV) {
+      if (whitelist.indexOf(origin) !== -1) {
+        callback(null, true);
+      } else {
+        callback(new Error('Not allowed by CORS'));
+      }
     }
   }
 };
@@ -48,8 +58,16 @@ app.use("/api/users", usersRouter);
 app.use("/api/matches", matchesRouter);
 app.use("/api/problems", problemsRouter);
 
+// app.use((req, res, next) => {
+//   if (process.env.NODE_ENV === 'production' && (!req.secure) && (req.get('X-Forwarded-Proto') !== 'https')) {
+//     res.redirect('https://' + req.get('Host') + req.url);
+//   } else {
+//     next();
+//   }
+// });
+
 app.use(function(err, req, res, next) {
-  res.status(err.status).json({ message: err.message });
+  res.status(err.status ? err.status : 500).json({ message: err.message });
 });
 
 // catch 404 and forward to error handler

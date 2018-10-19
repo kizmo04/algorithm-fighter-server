@@ -25,6 +25,9 @@ const {
   MATCH_TIMER,
   MATCH_PARTNER_WINNING,
   USER_WINNING,
+  USER_GIVE_UP,
+  MATCH_PARTNER_GIVE_UP,
+  USER_SOCKET_INIT,
 } = require('../constants/socketEventTypes');
 
 var onUsers = [];
@@ -65,24 +68,26 @@ module.exports = io => {
 
       const combatRoomKey = uuidv4();
       socket.join(combatRoomKey);
-      socket.leave(socket.id);
+      // socket.leave(socket.id);
       console.log('in find match partner', onUsers)
       if (onUsers.length) {
         const randomClient = getRandomClient(onUsers, combatRoomKey);
         const guestUser = randomClient.user;
         const guestSocketId = randomClient.socketId;
+        console.log(guestSocketId)
+        console.log('all rooms', io.of("/").adapter.rooms)
         io.of('/').to(guestSocketId).emit(SEND_MATCH_INVITATION, hostUser, combatRoomKey);
         io.of('/').to(combatRoomKey).emit(PENDING_MATCH_ACCEPTANCE, guestUser);
       } else {
         io.of('/').to(combatRoomKey).emit(MATCH_PARTNER_UNAVAILABLE);
         socket.leave(combatRoomKey);
-        socket.join(socket.id);
+        // socket.join(socket.id);
       }
     });
 
     socket.on(ACCEPT_MATCH_INVITATION, (combatRoomKey, matchPartner) => {
       socket.join(combatRoomKey);
-      socket.leave(socket.id);
+      // socket.leave(socket.id);
       console.log(combatRoomKey, matchPartner)
       console.log(io.of('/').adapter.rooms)
       // const matchPartner = onUsers.splice(_.findIndex(onUsers, client => client.socketId === socket.id), 1)[0];
@@ -95,7 +100,7 @@ module.exports = io => {
 
     socket.on(FIND_MATCH_PARTNER_END, combatRoomKey => {
       socket.leave(combatRoomKey);
-      socket.join(socket.id);
+      // socket.join(socket.id);
     });
 
     socket.on(SEND_RANDOM_PROBLEM, (problem, combatRoomKey, matchId) => {
@@ -136,12 +141,10 @@ module.exports = io => {
     });
 
     socket.on(KEY_DOWN, combatRoomKey => {
-      console.log('on key down!', combatRoomKey);
       socket.broadcast.to(combatRoomKey).emit(MATCH_PARTNER_KEY_DOWN, combatRoomKey);
     });
 
     socket.on(KEY_UP, combatRoomKey => {
-      console.log('on key up!', combatRoomKey);
       socket.broadcast.to(combatRoomKey).emit(MATCH_PARTNER_KEY_UP, combatRoomKey);
     });
 
@@ -150,10 +153,42 @@ module.exports = io => {
     });
 
     socket.on(USER_WINNING, (matchResult, combatRoomKey) => {
-      console.log('user winning ')
       socket.broadcast.to(combatRoomKey).emit(MATCH_PARTNER_WINNING, matchResult);
       socket.leave(combatRoomKey);
-      socket.in(socket.id);
+      // socket.in(socket.id);
+    });
+
+    socket.on(USER_GIVE_UP, (combatRoomKey, user) => {
+      console.log('on user give up')
+      socket.broadcast.to(combatRoomKey).emit(MATCH_PARTNER_GIVE_UP);
+      socket.leave(combatRoomKey);
+      // socket.in(socket.id);
+      if (checkOnUsers(user)) {
+        onUsers.push({
+         socketId: socket.id,
+         user
+       });
+     }
+    });
+
+    socket.on(USER_SOCKET_INIT, (combatRoomKey, user) => {
+      socket.leave(combatRoomKey);
+      // socket.in(socket.id);
+      if (checkOnUsers(user)) {
+         onUsers.push({
+          socketId: socket.id,
+          user
+        });
+      }
+      console.log('on Users \n', onUsers, '\n rooms!!!!! \n', io.of('/').adapter.rooms)
     });
   });
 };
+
+
+function checkOnUsers(user) {
+  return onUsers.every(client => {
+    console.log('in every', client.user, user)
+    return client.user.email !== user.email
+  });
+}

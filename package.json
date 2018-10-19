@@ -3,8 +3,8 @@
   "version": "0.0.0",
   "private": true,
   "scripts": {
-    "start": "nodemon ./bin/www",
-    "dev": "NODE_ENV=development nodemon ./bin/www"
+    "start": "node ./bin/www",
+    "dev": "NODE_ENV=development node ./bin/www"
   },
   "dependencies": {
     "async": "^2.6.1",

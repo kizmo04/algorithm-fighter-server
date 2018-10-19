@@ -21,7 +21,7 @@ router.get('/', (req, res, next) => {
 
 router.get('/random', (req, res, next) => {
   const { u_id, p_id } = req.query; // u_id == user_id, p_id === partner_id
-
+  console.log('in random', req.query)
   if (!mongoose.Types.ObjectId.isValid(u_id) || !mongoose.Types.ObjectId.isValid(p_id) || u_id === p_id) {
     next(new InvalidParameterError('user id'));
     return;
