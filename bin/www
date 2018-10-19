@@ -9,11 +9,12 @@ var debug = require('debug')('codebattle-server:server');
 // var http = require('http');
 const https = require('https');
 const fs = require('fs');
+const path = require('path');
 
 const options = {
-  key: fs.readFileSync('../certificates/server.key'),
-  cert: fs.readFileSync('../certificates/server.crt')
-};
+  key: fs.readFileSync(path.join(__dirname, '../certificates/server.key')),
+  cert: fs.readFileSync(path.join(__dirname, '../certificates/server.crt'))
+ };
 
 /**
  * Get port from environment and store in Express.
