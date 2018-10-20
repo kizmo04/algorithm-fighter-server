@@ -53,11 +53,6 @@ app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, "public")));
 
-app.use("/api", indexRouter);
-app.use("/api/users", usersRouter);
-app.use("/api/matches", matchesRouter);
-app.use("/api/problems", problemsRouter);
-
 app.use((req, res, next) => {
   console.log('FORWARED PROTO:', req.get('X-Forwarded-Proto'));
 
@@ -67,6 +62,11 @@ app.use((req, res, next) => {
     next();
   }
 });
+
+app.use("/api", indexRouter);
+app.use("/api/users", usersRouter);
+app.use("/api/matches", matchesRouter);
+app.use("/api/problems", problemsRouter);
 
 app.use(function(err, req, res, next) {
   res.status(err.status ? err.status : 500).json({ message: err.message });
