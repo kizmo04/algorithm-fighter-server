@@ -55,8 +55,15 @@ app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, "public")));
 
+app.use("/api", indexRouter);
+app.use("/api/users", usersRouter);
+app.use("/api/matches", matchesRouter);
+app.use("/api/problems", problemsRouter);
+
 app.use((req, res, next) => {
   console.log('FORWARED PROTO:', req.get('X-Forwarded-Proto'));
+  console.log('NODE_ENV:', process.env.NODE_ENV);
+  console.log('IS SECURE:', req.secure);
 
   if (process.env.NODE_ENV !== 'local' && (!req.secure) && (req.get('X-Forwarded-Proto') === 'http')) {
     res.redirect('https://' + req.get('Host') + req.url);
@@ -64,11 +71,6 @@ app.use((req, res, next) => {
     next();
   }
 });
-
-app.use("/api", indexRouter);
-app.use("/api/users", usersRouter);
-app.use("/api/matches", matchesRouter);
-app.use("/api/problems", problemsRouter);
 
 app.use(function(err, req, res, next) {
   res.status(err.status ? err.status : 500).json({ message: err.message });
