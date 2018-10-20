@@ -59,7 +59,9 @@ app.use("/api/matches", matchesRouter);
 app.use("/api/problems", problemsRouter);
 
 app.use((req, res, next) => {
-  if (process.env.NODE_ENV !== 'local' && (!req.secure) && (req.get('X-Forwarded-Proto') !== 'https')) {
+  console.log('FORWARED PROTO:', req.get('X-Forwarded-Proto'));
+
+  if (process.env.NODE_ENV !== 'local' && (!req.secure) && (req.get('X-Forwarded-Proto') === 'http')) {
     res.redirect('https://' + req.get('Host') + req.url);
   } else {
     next();
