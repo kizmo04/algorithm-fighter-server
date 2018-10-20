@@ -34,13 +34,14 @@ const whitelist = ['https://www.kizmo04.com', 'https://kizmo04.com'];
 
 const corsOptions = {
   origin: function (origin, callback) {
+    console.log('it is origin!!!!', origin);
+
     if (IS_DEV) {
       callback(null, true);
     } else if (!IS_DEV) {
-      if (whitelist.indexOf(origin) !== -1) {
+      if (whitelist.indexOf(origin) !== -1 || !origin) {
         callback(null, true);
       } else {
-        console.log('it is origin!!!!', origin);
         callback(new Error('Not allowed by CORS'));
       }
     }
