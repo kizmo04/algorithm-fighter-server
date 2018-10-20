@@ -10,7 +10,7 @@ const config = {
     mongoDB: `mongodb://${DB_USERNAME}:${DB_PASSWORD}@ds145911.mlab.com:45911/code_battle`,
   },
   development: {
-    mongoDB: `mongodb://${DB_USERNAME_DEV}:${DB_PASSWORD_DEV}@ds143211.mlab.com:43211/algorithm-fighter-development`
+    mongoDB: `mongodb://${DB_USERNAME}:${DB_PASSWORD}@ds145911.mlab.com:45911/code_battle`
   }
 };
 
