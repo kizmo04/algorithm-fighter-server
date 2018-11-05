@@ -12,7 +12,7 @@ const checkAuth = require('../middleware/check-auth');
 router.use(checkAuth);
 
 router.get('/', (req, res, next) => {
-  Match.find() // winner_id null은 제외...
+  Match.find() // winner_id null은 제외
   .then(matches => {
     res.status(200).json(matches);
   })
