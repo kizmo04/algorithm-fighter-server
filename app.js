@@ -30,7 +30,7 @@ const app = express();
 
 const IS_DEV = process.env.NODE_ENV !== 'production';
 
-const whitelist = ['https://www.kizmo04.com', 'https://kizmo04.com'];
+const whitelist = ['https://www.algorithm-fighter.live', 'https://algorithm-fighter.live'];
 
 const corsOptions = {
   origin: function (origin, callback) {
