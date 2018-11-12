@@ -6,7 +6,6 @@
 
 var app = require('../app');
 var debug = require('debug')('codebattle-server:server');
-// var http = require('http');
 const http = require('http');
 
 /**
@@ -20,7 +19,6 @@ app.set('port', port);
  * Create HTTP server.
  */
 
-// var server = http.createServer(app);
 const server = http.createServer(app);
 const io = require('socket.io')(server);
 io.set("transports", ["websocket", "polling"]);
